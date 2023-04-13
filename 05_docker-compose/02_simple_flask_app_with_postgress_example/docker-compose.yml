@@ -1,0 +1,26 @@
+# sudo docker volume create pgdata --> docker-compose will takecare
+# sudo docker network create library-network  --> docker-compose will takecare
+# sudo docker run --rm --name dev-postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=books -v pgdata:/var/lib/postgresql/data --network=library-network postgres
+# sudo docker build -t library-app .  --> docker-compose will takecare
+# docker run --rm -p 5000:5000 --network library-network library-app 
+
+version: '3.9'
+
+services:
+  dev-postgres:
+    image: postgres
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=books
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+  
+  library-app:
+    build: .
+    ports:
+      - 5000:5000
+  
+  volume:
+    pgdata:
+
+     
