@@ -1,7 +1,6 @@
 (05) Dockerfile (part-2): 
   =====================
-  
-  COPY -  copy files or folders from source to the dest path in the images's filesystem
+   COPY -  copy files or folders from source to the dest path in the images's filesystem
           COPY hello.txt /absolute/path 
 		  COPY hello.txt relative/to/workdir
 		  
@@ -69,4 +68,95 @@ $ curl ip4.info
          http://54.146.222.97:8002/npr.html
 		 
 		 
+		 
+
+#######################################
+
+==> container security etc:
+    -----------------------
+	
+scenario: 
+1. in host system, create file with passwords say key values inside partion / as root user
+2. make permissions to 400
+3. try to access that file with ubuntu user (hopefully permission issue)
+4. now launch the container try to cat the smae file by mount bind volume. observe it (hopefully it will able to see) 
+
+
+
+root@ip-172-31-1-92:/# mkdir secrets && cd secrets
+root@ip-172-31-1-92:/# vi passwords
+                        db_pass="India@123"
+                        aws_pass="Jungle#159"
+                        github_pass="Hero@890"
+						
+root@ip-172-31-1-92:/secrets# chmod 400 passwords
+
+root@ip-172-31-1-92:/secrets# ls -l
+total 4
+-r-------- 1 root root 65 Apr 13 10:06 passwords
+
+root@ip-172-31-1-92:/secrets# cat passwords
+db_pass="India@123"
+aws_pass="Jungle#159"
+github_pass="Hero@890"
+
+oot@ip-172-31-1-92:/secrets# exit
+logout
+
+ubuntu@ip-172-31-1-92:~$ cat /secrets/passwords
+cat: /secrets/passwords: Permission denied
+
+ubuntu@ip-172-31-1-92:~$ docker run --rm -it -v /secrets/passwords:/secrets/passwords nprauto11/nprubuntu:v1 cat /secrets/passwords
+db_pass="India@123"
+aws_pass="Jungle#159"
+github_pass="Hero@890"
+
+
+note: looks this is flaw, security issue. need to work on it (why its able to view this secured file because while building container created with root). so we need to make secure containers
+best practices is that create containers with app users 
+
+
+--> let's try to create image say nginx and run with non-root user 
+
+$ vi Dockerfile
+
+# simple nginx server running with non-root user (appuser)
+FROM ubuntu:20.04
+ENV DEBIAN_FRONTEND noninteractive # export DEBIAN_FRONTEND="noninteractive"
+LABEL maintainer="npr <nprauto11@gmail.com>" 
+RUN apt update \
+    && apt install -y nginx iputils-ping net-tools curl unzip wget vim git 
+RUN groupadd appgroup && useradd appuser \
+    && usermod -a -G appgroup appuser \
+    && usermod -a -G www-data appuser \
+    && chown -R appuser:www-data /var/www/html \
+    && chmod -R 775 /var/www/html \
+    && chown -R appuser:www-data /var/log/nginx \
+    && chown -R appuser:www-data /var/lib/nginx/ \
+    && chown appuser:www-data etc/nginx/nginx.conf
+USER appuser
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
+
+
+$ docker build --no-cache -t nprauto11/npr_nginx:v1 .
+
+$ docker run --rm -dit --name NGINX1 -p 9000:80 nprauto11/npr_nginx:v1
+
+# test: docker run --rm -it -v /secrets/passwords:/secrets/passwords nprauto11/npr_nginx:v1 cat /secrets/passwords
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 		 
