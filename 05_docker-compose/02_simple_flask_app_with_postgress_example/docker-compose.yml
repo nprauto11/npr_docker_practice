@@ -4,7 +4,7 @@
 # sudo docker build -t library-app .  --> docker-compose will takecare
 # docker run --rm -p 5000:5000 --network library-network library-app 
 
-version: '3.9'
+version: '3'
 
 services:
   dev-postgres:
@@ -14,13 +14,11 @@ services:
       - POSTGRES_DB=books
     volumes:
       - pgdata:/var/lib/postgresql/data
-  
   library-app:
     build: .
     ports:
       - 5000:5000
-  
-volume:
-  pgdata:
 
+volumes:
+  pgdata:
      
