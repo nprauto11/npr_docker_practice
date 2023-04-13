@@ -1,0 +1,109 @@
+(05) Dockerfile (part-2): 
+  =====================
+  
+  COPY -  copy files or folders from source to the dest path in the images's filesystem
+          COPY hello.txt /absolute/path 
+		  COPY hello.txt relative/to/workdir
+		  
+  ADD  -  copy files, folders, or remote URLs from source to the dest path in the images's file system
+          ADD hello.txt /absolute/path 
+		  ADD hello.txt relative/to/workdir 
+		  
+		  
+---> nginx_web1_dockerfile
+     ---------------------
+
+$ vim npr.html 
+<html>
+<head>
+</head>
+<title>npr</title>
+<body>
+<h1> hi welcome to npr site ! </h1>
+</body>
+</html>
+
+
+$ vim Dockerfile
+
+# simple HTML5 website2 configured with nginx web server
+FROM ubuntu:20.04
+ENV DEBIAN_FRONTEND noninteractive # export DEBIAN_FRONTEND="noninteractive"
+LABEL maintainer="npr <nprauto11@gmail.com>" 
+ENV REPO="https://github.com/nprauto11/html5-simple-personal-website.git"
+ENV BG_IMG="https://www.pixelstalk.net/wp-content/uploads/2016/08/Background-HD-Wallpapers-Free-Download.jpg"
+RUN apt update \
+    && apt install -y nginx iputils-ping net-tools curl unzip wget vim git \
+    && mkdir /tmp/website \
+    && git clone ${REPO} /tmp/website \
+    && cd /tmp/website \
+    && cp -r index.html assets /var/www/html 
+COPY npr.html /var/www/html
+WORKDIR /tmp/website
+ADD ${BG_IMG} .
+RUN chmod 644 Background-HD-Wallpapers-Free-Download.jpg \
+    && cp -v Background-HD-Wallpapers-Free-Download.jpg /var/www/html/assets/css/images/bg.jpg
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
+
+
+
+$ docker build --no-cache -t nprauto11/nginx_web:v2 .
+
+$ docker images
+REPOSITORY            TAG       IMAGE ID       CREATED          SIZE
+nprauto11/nginx_web   v2        6c28edc56f88   12 seconds ago   336MB
+
+$ docker run --rm -dit --name CON2 -p 8002:80 nprauto11/nginx_web:v2
+e2b2a6914edccc96b18df784d336577de928cb94767f20fd8c3b32e6452256df
+
+$ docker ps
+CONTAINER ID   IMAGE                    COMMAND                  CREATED              STATUS              PORTS                                   NAMES
+400ee4df0d81   nprauto11/nginx_web:v2   "nginx -g 'daemon of…"   About a minute ago   Up About a minute   0.0.0.0:8002->80/tcp, :::8002->80/tcp   CON2
+
+
+$ curl ip4.info
+54.146.222.97
+
+# browse http://54.146.222.97:8002
+         http://54.146.222.97:8002/npr.html
+		 
+		 
+		 
+###############################################################
+
+---> nginx_web2_dockerfile
+     ---------------------
+
+# downwload the image from internet and name it as bg.jpg with 644
+# now make tar.gz as "bg.tar.gz" and placed in the Dockerfile folder 
+
+$ vim test.html 
+<html>
+<head>
+</head>
+<title>test</title>
+<body>
+<h1> hi welcome to npr test site ! </h1>
+</body>
+</html>
+
+
+
+$ vim Dockerfile
+
+# simple HTML5 website3 configured with nginx web server
+FROM ubuntu:20.04
+ENV DEBIAN_FRONTEND noninteractive # export DEBIAN_FRONTEND="noninteractive"
+LABEL OWNER="npr <nprauto11@gmail.com>" 
+ENV REPO="https://github.com/nprauto11/html5-simple-personal-website.git"
+RUN apt update \
+    && apt install -y nginx iputils-ping net-tools curl unzip wget vim git \
+    && mkdir /tmp/website \
+    && git clone ${REPO} /tmp/website \
+    && cd /tmp/website \
+    && cp -r index.html assets /var/www/html 
+COPY test.html /var/www/html
+ADD bg.tar.gz /var/www/html/assets/css/images/  #will untar and copy it. if its url, will simply download
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
