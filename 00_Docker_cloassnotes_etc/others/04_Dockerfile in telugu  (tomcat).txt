@@ -1,0 +1,55 @@
+(04) Dockerfile in telugu (tomcat etc):
+==========================
+
+Ref: https://www.youtube.com/watch?v=8rECGTJeE6A    
+
+* FROM: to pull the base image 
+* RUN:  to execute linux or bash commands 
+* CMD:  to provide defaults for an executing container (say to start nginx: CMD [/usr/sbin/nginx])
+* ENTRYPOINT: To configure a container that will run as an executable 
+              (similar to CMD but the command used with ENTRYPOINT cant change during runtime, but can change the command used with CMD)
+* WORKDIR: to sets te working directory (similar to CD)
+* COPY:  to copy a directory/file from local machine to the docker container 
+* ADD: To copy files and folders from local machine to docker containers 
+       (similar to copy. another advantage is we can download the content from internet url as well)
+* EXPOSE: Informs Docker that the container listens on the specified network ports at runtime 
+* ENV: to set environment variables 
+
+
+ex:- to install tomcat on centos 
+===
+* pull centos from dockerhub                              ---> FROM 
+* install Java                                            ---> RUN
+* Create /opt/tomcat directory (to store tomcat gz file)  ---> RUN 
+* change work directory to /opt/tomcat                    ---> WORKDIR
+* Download tomcat packages                                ---> RUN wget (or) ADD
+* extract tar.gz file                                     ---> RUN 
+* rename to tomcat Directory                              ---> RUN 
+* Tell to docker that it runs on port 8080                ---> EXPOSE
+* start tomcat services                                   ---> CMD
+
+
+# mkdir npr_tomcat && cd npr_tomcat
+# vi Dockerfile 
+
+FROM centos:7
+RUN yum install java -y
+RUN mkdir /opt/tomcat
+WORKDIR /opt/tomcat
+ADD https://dlcdn.apache.org/tomcat/tomcat-9/v9.0.73/bin/apache-tomcat-9.0.73.tar.gz .
+RUN tar -xvzf apache-tomcat-9.0.73.tar.gz
+RUN mv apache-tomcat-9.0.73/* /opt/tomcat 
+EXPOSE 8080 
+CMD ["/opt/tomcat/bin/catalina.sh", "run"]
+
+
+# docker build -t mytomcat -f /path   
+  $ docker build -t mytomcat .   # because Dockerfile on current directory 
+
+
+$ docker images
+REPOSITORY   TAG       IMAGE ID       CREATED          SIZE
+mytomcat     latest    4e16b5eaf91b   12 seconds ago   650MB
+
+$ docker run --name npr_tomcat1 -d -p 9080:8080 mytomcat
+  e7b1fd164a202343332c2ca820395e81bcbb5a48f14c12866825a0172ba82831

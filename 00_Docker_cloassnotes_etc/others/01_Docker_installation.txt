@@ -1,0 +1,103 @@
+(01) docker installation:-
+=========================
+
+amazon linux :
+------------
+Ref: https://www.cyberciti.biz/faq/how-to-install-docker-on-amazon-linux-2/
+
+
+sudo yum update
+sudo yum search docker
+sudo yum info docker
+sudo yum install docker
+ 
+sudo usermod -a -G docker ec2-user
+id ec2-user
+newgrp docker
+
+# sudo yum install python3-pip
+  sudo pip3 install docker-compose
+   or
+  pip3 install --user docker-compose
+
+(or)
+wget https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) 
+sudo mv docker-compose-$(uname -s)-$(uname -m) /usr/local/bin/docker-compose
+sudo chmod -v +x /usr/local/bin/docker-compose
+
+sudo systemctl enable docker.service
+sudo systemctl start docker.service
+sudo systemctl status docker.service
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+ec2-ubuntu linux :
+----------------
+Ref: https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-ubuntu-22-04
+
+sudo apt update
+sudo apt install apt-transport-https ca-certificates curl software-properties-common -y
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+sudo apt update
+apt-cache policy docker-ce
+sudo apt install docker-ce -y
+sudo systemctl status docker
+
+sudo usermod -aG docker ${USER}  #later relogin in new session
+groups
+(or)sudo usermod -aG docker username
+
+
+sudo apt install python3-pip -y
+sudo pip3 install docker-compose
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+install Docker on ubuntu 22 using below script:
+-------------------------------------------
+
+# vim docker.sh
+
+sudo apt update
+sudo apt install apt-transport-https ca-certificates curl software-properties-common -y
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+sudo apt update
+apt-cache policy docker-ce
+sudo apt install docker-ce -y
+
+echo "\n"
+sudo systemctl status docker | grep Active -B2 -A8
+sudo usermod -aG docker ${USER}  
+
+sudo apt install python3-pip -y
+sudo pip3 install docker-compose
+
+echo "\n==============="
+sudo docker version
+echo "\n"
+sudo docker-compose version
+
+# execute /bin/bash docker.sh
+# now relogin putty/terminal new session
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+basic commands
+==============
+
+docker version
+docker info 
+docker help
+docker images 
+docker build -t <image-name> .
+docker run -p host-os-port:app-port <image-name>
+docker rmi <img-name>

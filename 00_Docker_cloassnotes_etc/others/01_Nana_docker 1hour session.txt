@@ -1,0 +1,240 @@
+(03) Nana_docker 1hour session:-
+============================
+
+Ref: https://youtu.be/pg19Z8LL06w
+	 
+
+ docker images:- Immutable template that defines how a container will be realized
+                 we can run multiple containers from 1 image 
+ 
+ docker container: - A running instance of an image 
+                     That's when the container environment is created 
+ 
+ docker registry:   A storage and distribution system for docker images (ex: docker hub)
+                    official images are available from apps like redis, mongo, postgress etc
+					official images are maintained by the software authors or in collaboration
+					with docker community 
+					
+                    ex:  docker pull redis
+					     docker pull redis:latest   #here latest is the tag (will download latest ver)
+						 docker pull nginx:1.23     #here latest is the tag (will download 1.23 ver
+						 
+						 
+practice:-
+--------
+    $ docker pull nginx:1.23 
+	$ docker images
+           REPOSITORY   TAG       IMAGE ID       CREATED       SIZE
+           nginx        1.23      080ed0ed8312   13 days ago   142MB
+		
+	$ docker pull nginx:latest
+	$ docker images
+           REPOSITORY   TAG       IMAGE ID       CREATED       SIZE
+           nginx        1.23      080ed0ed8312   13 days ago   142MB
+           nginx        latest    080ed0ed8312   13 days ago   142MB
+		
+	$ docker run nginx:1.23  # current session will start nginx and shoeing logs on screen
+	$ docker ps  # in other session 
+	  CONTAINER ID   IMAGE        COMMAND                  CREATED          STATUS          PORTS     NAMES
+       5fb1c50f5df0   nginx:1.23   "/docker-entrypoint.…"   52 seconds ago   Up 50 seconds   80/tcp    interesting_bassi
+
+    $ docker run -d nginx:1.23  # run in detached mode 
+	  c292e03e2ea47b933b3ee6fe820724f4c6ad44bd00060e44473f1b49ff8b5055
+	  
+	$ docker logs c292e03  # to view the logs of running container 
+    	
+	$ docker run nginx:1.22-alpine   # first search the image locally, if not found pull from docker hub
+	  Unable to find image 'nginx:1.22-alpine' locally
+      1.22-alpine: Pulling from library/nginx
+      f56be85fc22e: Pull complete
+      902afa68ca51: Pull complete
+      b0a3a88d1edf: Pull complete
+      51509a9feac5: Pull complete
+      2dcba36d07e0: Pull complete
+      0665eda1eb4f: Pull complete
+      034c69766aa3: Pull complete
+      Digest: sha256:8745c93f1a1c33a8ec8c82707b9bb1c8fe9ebf2b5d82e9480e78625d809855a1
+      Status: Downloaded newer image for nginx:1.22-alpine
+	  
+    $ docker ps 
+      CONTAINER ID   IMAGE               COMMAND                  CREATED              STATUS              PORTS     NAMES
+      9d776a853b84   nginx:1.22-alpine   "/docker-entrypoint.…"   About a minute ago   Up About a minute   80/tcp    mystifying_feistel
+      c292e03e2ea4   nginx:1.23          "/docker-entrypoint.…"   7 minutes ago        Up 7 minutes        80/tcp    affectionate_keller	
+
+    $ docker stop 9d776a853b84  # <container-id>
+	
+	
+port-binding:
+-----------
+    # As a standard practice, to use the same port on our host as container is using
+	
+	ubuntu@ip-172-31-30-182:~$ curl ip4.info
+    34.224.84.202
+	
+	# docker run -d -p {host-port}:{container-port} <image>
+	$ docker run -d -p 9000:80 nginx:1.23 
+	  fbcf26c31a06a954934c3c40277de731c6eab82b783b359d4a3c8d1c53ec4e7e
+	  
+	$ docker ps
+      CONTAINER ID   IMAGE        COMMAND                  CREATED          STATUS          PORTS                                   NAMES
+      fbcf26c31a06   nginx:1.23   "/docker-entrypoint.…"   25 seconds ago   Up 24 seconds   0.0.0.0:9000->80/tcp, :::9000->80/tcp   charming_booth
+      c292e03e2ea4   nginx:1.23   "/docker-entrypoint.…"   12 minutes ago   Up 12 minutes   80/tcp                                  affectionate_keller
+ 
+    # access the browser with 34.224.84.202:9000
+	
+	$ docker logs fbcf26c31a06
+	
+	
+start and stop containers:
+--------------------------
+     
+	$ docker ps -a  # list all containers (active & stopped ones)
+      CONTAINER ID   IMAGE               COMMAND                  CREATED          STATUS                      PORTS                                   NAMES
+      fbcf26c31a06   nginx:1.23          "/docker-entrypoint.…"   4 minutes ago    Up 4 minutes                0.0.0.0:9000->80/tcp, :::9000->80/tcp   charming_booth
+      9d776a853b84   nginx:1.22-alpine   "/docker-entrypoint.…"   10 minutes ago   Exited (0) 6 minutes ago                                            mystifying_feistel
+      c292e03e2ea4   nginx:1.23          "/docker-entrypoint.…"   16 minutes ago   Up 16 minutes               80/tcp                                  affectionate_keller
+      5fb1c50f5df0   nginx:1.23          "/docker-entrypoint.…"   21 minutes ago   Exited (0) 18 minutes ago                                           interesting_bassi
+	
+    $ docker start 9d776a853b84  # started stopped container 
+	
+	$ docker ps
+      CONTAINER ID   IMAGE               COMMAND                  CREATED          STATUS          PORTS                                   NAMES
+      fbcf26c31a06   nginx:1.23          "/docker-entrypoint.…"   6 minutes ago    Up 6 minutes    0.0.0.0:9000->80/tcp, :::9000->80/tcp   charming_booth
+      9d776a853b84   nginx:1.22-alpine   "/docker-entrypoint.…"   12 minutes ago   Up 5 seconds    80/tcp                                  mystifying_feistel
+      c292e03e2ea4   nginx:1.23          "/docker-entrypoint.…"   18 minutes ago   Up 18 minutes   80/tcp                                  affectionate_keller
+	  
+	# we can stop/start container by their container -id / container names as well
+	
+	$ docker stop 9d776a853b84 affectionate_keller charming_booth
+	  9d776a853b84
+      affectionate_keller
+	  charming_booth
+	  
+	$ docker ps
+      CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES             
+	  
+	# we can run docker containers with specific name with label "--name"
+	$ docker run --name web-app -d -p 8080:80 nginx:1.23  
+	  85206c5af79a808cbb333462baf4552f515bd74d50fa1dcdf61eceeb5b2f9906
+	 
+    $ docker ps 
+      CONTAINER ID   IMAGE        COMMAND                  CREATED         STATUS         PORTS                                   NAMES
+      85206c5af79a   nginx:1.23   "/docker-entrypoint.…"   2 minutes ago   Up 4 seconds   0.0.0.0:8080->80/tcp, :::8080->80/tcp   web-app
+	  
+	# access the browser with 34.224.84.202:8080
+	
+    $ docker logs web-app
+	
+	
+private docker registries :-
+-------------------------
+* docker hub generally public docker registries 
+* private docker registris: say Amazon ECR, Google Container registry, etc 
+* Nexus (popular artifact repository manager)
+* even docker hub has private docker regstry 
+
+
+Registry vs Repository
+-------------------
+Docker registry: A service providing storage
+                 collection of repositories 
+				 
+Docker repository: collection of related images with same name but diffrent versions/tags of same app
+
+
+
+Dockerfile :-  Building our own Docker images (we want to deploy our app as a Docker container) 
+----------
+* we need to create a "definition" of how to build an image from our application 
+* Dockerfile is a text document that contains commands to assemble an image 
+* Docker can then build an image by reading those instructions 
+* Dockerfiles start from a parent image or "base image"
+* It's a Docker image that your image is based on .
+  (You choose the base image, depending on which tools you need to have available)
+  
+  ex: to create nginx webapp & will build it 
+-->
+
+# mkdir npr && cd npr 
+# vi Dockerfile
+
+# Pull base image
+FROM debian:latest
+
+# Dockerfile Maintainer
+MAINTAINER npr "npruser@gmail.com"
+
+# Install nginx and adjust nginx config to stay in foreground
+RUN apt-get update && apt-get install -y nginx; 
+RUN echo "daemon off;" >> /etc/nginx/nginx.conf
+
+# Expose HTTP
+EXPOSE 80
+
+# Start nginx
+CMD ["/usr/sbin/nginx"]
+
+
+-->
+
+$ docker build -t npr-nginx-app:1.0 .
+
+# remember a docker image consists of layers 
+# each instruction in the Docker file creates one layer 
+# These layers are stacked & each one is a delta of changes from the previous layer 
+
+$ docker images
+REPOSITORY      TAG           IMAGE ID       CREATED         SIZE
+npr-nginx-app   1.0           1ac5867091ac   5 minutes ago   211MB
+nginx           1.22-alpine   88db8eea1453   12 days ago     41MB
+nginx           1.23          080ed0ed8312   13 days ago     142MB
+nginx           latest        080ed0ed8312   13 days ago     142MB
+
+-->
+ $ docker run --name npr_app -d -p 9080:80 npr-nginx-app:1.0 
+   144ec24ca50eed2cb06d07375568e725038096a7ed80bb483b1a91ac3111fdd7
+   
+ # browse 34.224.84.202:9080
+ 
+ $ docker ps 
+ 
+ $ docker exec -it npr_app /bin/bash
+ root@144ec24ca50e:/# cat /var/www/html/index.nginx-debian.html
+ root@144ec24ca50e:/# exit
+ 
+ --->
+
+ubuntu@ip-172-31-30-182:~/npr1$ pwd
+/home/ubuntu/npr1
+
+ubuntu@ip-172-31-30-182:~/npr1$ cat index.html
+hi ! every one ! Welcome to npr-web-app
+
+ubuntu@ip-172-31-30-182:~/npr1$ cat Dockerfile
+FROM nginx:alpine
+COPY index.html /usr/share/nginx/html
+
+ubuntu@ip-172-31-30-182:~/npr1$ docker build -t html-server-image:v1 .
+
+ubuntu@ip-172-31-30-182:~/npr1$ docker images | grep html
+html-server-image   v1            bfeaf6fe1fff   31 seconds ago   41MB
+
+ubuntu@ip-172-31-30-182:~/npr1$ docker run --name webapp1 -d -p 9050:80 html-server-image:v1
+abe7b650b4c3f78c1296afa88eb8f3310f861780ed2fd57e34a2705bbed5c609
+
+--->
+
+Stop all running containers:-
+   $ docker stop $(docker ps -a -q)
+   
+Delete all stopped containers:-
+   $ docker rm $(docker ps -a -q)
+
+-->
+   $ docker images -a 
+   
+stop all local docker images:- 
+   $ docker rmi $(docker images -a -q)
+   $ docker rmi $(docker images -a -q) --force   #if needed 
+   
+   

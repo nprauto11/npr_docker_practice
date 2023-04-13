@@ -1,0 +1,78 @@
+(02) Docker commands:-
+=====================
+
+** docker basic commands
+----------
+docker info 
+docker version
+docker login  # to login to docker hub
+docker logout 
+docker help
+
+
+** docker image commands
+----------
+docker images 
+docker rmi <img-name>
+docker pull <img-name>
+docker run <imag-name>
+docker run -d -p host-port:container-port 
+docker tag <imag-name> <imag-tag-name>
+docker push <image-tag-name>
+docker history <img-name>
+docker inspect <img-name>
+docker image prune   #used to remove all unsed images
+
+
+** docker container commands
+-------------
+docker ps 
+docker ps -a 
+docker stop <container-id>
+docker start <container-id>
+docker restart <container-id>
+docker rm <container-id>
+docker logs <container-id>
+docker exec -it <container-id> /bin/bash 
+docker inspect <container-id>
+docker export <container-id>
+
+
+** docker network commands
+-------------
+docker network ls 
+docker network create <network-name>
+docker network rm <network-name>
+docker network inspect<network-name>
+
+
+** docker volume commands
+-------------
+docker volume ls 
+docker volume create <vol-name>
+docker volume inspect <vol-name>
+docker volume rm <vol-name>
+docker system prune --volumes  #used to remove all unsed volumes
+
+
+** docker compose commands
+--------------
+docker-compose --version 
+docker-compose up -d 
+docker-compose down   #stop & remove containers
+docker-compose ps 
+docker-compose images 
+docker-compose stop 
+docker-compose start #start the containers which are in stopped state 
+
+** docker swarm commands (archistration -- maintain life cycle of containers)
+--------------
+sudo docker swarm init # inialise the swarm dockercluster 
+sudo docker swarm join-token worker # will give token to join the machines
+sudo docker swarm join --token <token>  #to join the machine to cluster (execute from other machine as workernode to master node)
+
+sudo docker service --name <service-name> -p 8080:8080 <imag-name>
+sudo docker service scale <service-name> = replicas
+sudo docker service ls 
+sudo docker service rm <service-name>
+sudo docker swarm leave # from cluster worker node want to leave 

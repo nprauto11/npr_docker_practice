@@ -1,0 +1,175 @@
+(01) Docker intro-install-images-port forward :-
+==============================================
+
+** Docker intro (containers) :
+-------------------------
+
+reg. what even is a container: namespaces and cgroups 
+   Ref: https://jvns.ca/blog/2016/10/10/what-even-is-a-container/
+   
+   Ref: https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-ubuntu-22-04
+
+
+===>
+
+** Docker install on ubuntu 22:
+-----------------------------
+
+# vim docker.sh
+
+sudo apt update
+sudo apt install apt-transport-https ca-certificates curl software-properties-common -y
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+sudo apt update
+apt-cache policy docker-ce
+sudo apt install docker-ce -y
+
+echo "\n"
+sudo systemctl status docker | grep Active -B2 -A8
+sudo usermod -aG docker ${USER}  
+
+sudo apt install python3-pip -y
+sudo pip3 install docker-compose
+
+echo "\n==============="
+sudo docker version
+echo "\n"
+sudo docker-compose version
+
+# execute /bin/bash docker.sh
+# now relogin putty/terminal new session
+
+==>
+
+registries:	
+-----------
+docker --> hub.docker.com 
+aws    --> ECR
+azure  --> ACR 
+
+
+===>
+	
+** Docker images & portforward:
+--------------------------------
+
+ex: cats are like servers (generally we cant change often)
+    cattles like containers (we can change frequntly)
+note: containers are stateless 
+	
+---> alis setting (if needed)
+     vi .bashrc # at the end 
+	 alias di = 'docker images'
+	 alias dr = 'docker run'
+	 alias dps = 'docker ps -a'
+	 
+	 source .bashrc 
+
+-->
+
+$ docker pull sreeharshav/rollingupdate:v3
+$ docker images 
+
+$ docker run --rm -it --name NGINX1 sreeharshav/rollingupdate:v3 bash
+root@dd7545f3a009:/#  ctrl+pq for safe exit 
+
+$ docker ps
+CONTAINER ID   IMAGE                          COMMAND   CREATED         STATUS         PORTS     NAMES
+dd7545f3a009   sreeharshav/rollingupdate:v3   "bash"    2 minutes ago   Up 2 minutes   80/tcp    NGINX1
+
+$ docker stop NGINX1
+NGINX1
+
+$ docker run -dit --name NGINX1 --hostname INSIDENGINX1 sreeharshav/rollingupdate:v3 bash
+03c9a909ed305f967884f5dd00a586a8e85ae517bacc9e67bc4e1c3802312a68
+
+$ docker ps 
+CONTAINER ID   IMAGE                          COMMAND   CREATED          STATUS          PORTS     NAMES
+03c9a909ed30   sreeharshav/rollingupdate:v3   "bash"    19 seconds ago   Up 18 seconds   80/tcp    NGINX1
+
+$ docker exec -it NGINX1 bash 
+
+$ docker stop NGINX1
+NGINX1
+
+$ docker ps
+CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+
+$ docker ps -a
+CONTAINER ID   IMAGE                          COMMAND   CREATED         STATUS                     PORTS     NAMES
+03c9a909ed30   sreeharshav/rollingupdate:v3   "bash"    2 minutes ago   Exited (0) 8 seconds ago             NGINX1
+
+$ docker rm NGINX1
+NGINX1
+
+-->
+
+$ docker run --rm -dit --name NGINX2 --hostname INSIDENGINX2 nginx:latest bash
+914aec1332cc171e70c22a3334049b5355a1debc517ee01ef948188894a255e6
+
+$ docker exec NGINX2 service nginx status
+nginx is not running ... failed!
+
+$ docker exec NGINX2 service nginx start
+
+$ docker exec NGINX2 service nginx status
+nginx is running
+
+$ docker inspect NGINX2  # to find ip adress of container 
+
+$ curl http://172.17.0.3
+
+$ docker stop $(docker ps -a -q)
+914aec1332cc
+0154c76f82bd
+
+$ docker ps -a
+CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+
+-->
+
+$ docker run --rm -dit --name NGINX1 --hostname INSIDENGINX1 sreeharshav/rollingupdate:v3
+80e1f0ae89ed9cee6b1a526e01b932b532dd6c320144554b2367ecdeb72136e1
+
+$ docker run --rm -dit --name NGINX2 --hostname INSIDENGINX2 sreeharshav/rollingupdate:v3
+5b1a37659234fb709285cf0a3e408d7cdb5720205a6a42f8ae256e3111d2c23e
+
+$ docker run --rm -dit --name NGINX3 --hostname INSIDENGINX3 sreeharshav/rollingupdate:v3
+6b215ab0439967293a887673199ec45b9f979ae6f2d246c187d3419ed5e492eb
+
+$ docker ps
+CONTAINER ID   IMAGE                          COMMAND                  CREATED              STATUS              PORTS     NAMES
+6b215ab04399   sreeharshav/rollingupdate:v3   "nginx -g 'daemon of…"   56 seconds ago       Up 55 seconds       80/tcp    NGINX3
+5b1a37659234   sreeharshav/rollingupdate:v3   "nginx -g 'daemon of…"   About a minute ago   Up About a minute   80/tcp    NGINX2
+80e1f0ae89ed   sreeharshav/rollingupdate:v3   "nginx -g 'daemon of…"   About a minute ago   Up About a minute   80/tcp    NGINX1
+
+
+$ docker stop $(docker ps -aq)
+6b215ab04399
+5b1a37659234
+80e1f0ae89ed
+
+
+$ docker run --rm -dit --name NGINX1 --hostname INSIDENGINX1 --publish 8000:80 sreeharshav/rollingupdate:v3
+a1311b06f8d04c425cb1e4b6067203708350e63f2015b9053b32bfb7e0ec89da
+
+$ docker run --rm -dit --name NGINX2 --hostname INSIDENGINX2 --publish 8100:80 nginx:latest 
+cfb6619e1b21b5d3f991af8b0c4a284fbcfc34358f812e35aa37ad6df3eb53e6
+
+$ docker run --rm -dit --name NGINX3 --hostname INSIDENGINX3 --publish 8200:80 httpd:latest
+850c76cd6c187743d82e6478cef77cfe6be84842ef5204665859af3dca810e79
+
+$ docker ps
+CONTAINER ID   IMAGE                          COMMAND                  CREATED              STATUS              PORTS                                   NAMES
+850c76cd6c18   httpd:latest                   "httpd-foreground"       19 seconds ago       Up 18 seconds       0.0.0.0:8200->80/tcp, :::8200->80/tcp   NGINX3
+cfb6619e1b21   nginx:latest                   "/docker-entrypoint.…"   46 seconds ago       Up 46 seconds       0.0.0.0:8100->80/tcp, :::8100->80/tcp   NGINX2
+a1311b06f8d0   sreeharshav/rollingupdate:v3   "nginx -g 'daemon of…"   About a minute ago   Up About a minute   0.0.0.0:8000->80/tcp, :::8000->80/tcp   NGINX1
+
+# browse in browser 
+  http:44.215.70.137:8000
+  http:44.215.70.137:8100
+  http:44.215.70.137:8200
+  

@@ -1,0 +1,716 @@
+(02) Docker networks:-
+====================
+	
+$ ifconfig  --> docker0 (with series 172.17.0.1)
+
+$ docker network ls
+NETWORK ID     NAME      DRIVER    SCOPE
+c2b123dcf289   bridge    bridge    local    # <-- default
+06667093aaac   host      host      local    # <-- host-only network 
+ba17b9b0aabc   none      null      local    # <-- no network interface
+
+
+$ docker network inspect bridge 
+$ docker network inspect host
+
+
+--> method:1 
+    --------
+$ docker pull ubuntu:22.04 
+
+$ docker images | grep ubuntu
+REPOSITORY                  TAG       IMAGE ID       CREATED       SIZE
+ubuntu                      22.04     08d22c0ceb15   4 weeks ago   77.8MB
+
+$ docker run --rm -it ubuntu:22.04 bash 
+root@868ac4d8a182:/# apt update
+root@868ac4d8a182:/# apt install -y iputils-ping net-tools curl wget nano vim
+
+root@868ac4d8a182:/# ifconfig
+eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 172.17.0.5  netmask 255.255.0.0  broadcast 172.17.255.255
+        ether 02:42:ac:11:00:05  txqueuelen 0  (Ethernet)
+        RX packets 4752  bytes 53399506 (53.3 MB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 4381  bytes 303219 (303.2 KB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 127.0.0.1  netmask 255.0.0.0
+        loop  txqueuelen 1000  (Local Loopback)
+        RX packets 0  bytes 0 (0.0 B)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 0  bytes 0 (0.0 B)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+		
+root@868ac4d8a182:/# ping www.google.com
+PING www.google.com (142.251.16.103) 56(84) bytes of data.
+64 bytes from bl-in-f103.1e100.net (142.251.16.103): icmp_seq=1 ttl=50 time=1.54 ms
+64 bytes from bl-in-f103.1e100.net (142.251.16.103): icmp_seq=2 ttl=50 time=1.55 ms
+64 bytes from bl-in-f103.1e100.net (142.251.16.103): icmp_seq=3 ttl=50 time=1.58 ms
+^C
+--- www.google.com ping statistics ---
+3 packets transmitted, 3 received, 0% packet loss, time 2003ms
+rtt min/avg/max/mdev = 1.537/1.558/1.584/0.019 ms
+
+root@868ac4d8a182:/# which curl
+/usr/bin/curl
+
+root@868ac4d8a182:/# which vim
+/usr/bin/vim
+
+root@868ac4d8a182:/# ctrl pq 
+
+ubuntu@ip-172-31-0-248:~$ docker ps
+CONTAINER ID   IMAGE          COMMAND   CREATED         STATUS         PORTS     NAMES
+868ac4d8a182   ubuntu:22.04   "bash"    6 minutes ago   Up 6 minutes             determined_matsumoto
+
+
+$ docker commit 868ac4d8a182 nprauto11/nprubuntu:v1
+sha256:e3f0d9d06fc69fa48d19a75e9804b5cd532206b027494a482b0c97d656f13c10
+
+$ docker images
+REPOSITORY            TAG       IMAGE ID       CREATED         SIZE
+nprauto11/nprubuntu   v1        e3f0d9d06fc6   2 minutes ago   235MB
+ubuntu                22.04     08d22c0ceb15   4 weeks ago     77.8MB
+
+ubuntu@ip-172-31-0-248:~$ docker login
+Username: nprauto11
+Password: ********  #enter password
+
+Login Succeeded
+
+$ docker push nprauto11/nprubuntu:v1
+The push refers to repository [docker.io/nprauto11/nprubuntu]
+66eb9fe2e942: Pushed
+b93c1bd012ab: Mounted from library/ubuntu
+v1: digest: sha256:92d0f88183260e706b84e66f1c0c14a13c5901396a5d81fe2970196b3595b8e5 size: 741
+
+
+--> method:2  via Dockerfile  (example)
+    --------
+$ vi Dockerfile 
+FROM ubuntu:latest
+RUN apt update 
+RUN apt install -y iputils-ping net-tools curl wget nano vim nginx 
+
+$ docker build -t nprauto11/nprubuntu:v2 .
+
+$ docker images                                              
+REPOSITORY            TAG       IMAGE ID       CREATED         SIZE
+nprauto11/nprubuntu   v2        14c49e3523dd   9 seconds ago   241MB
+
+$ docker push nprauto11/nprubuntu:v2
+
+$ docker run --rm -dit --name CON1 nprauto11/nprubuntu:v1
+7434d97ee277b2fedb1275b1cfe45cabd1eceaf1b05a504ccd274203ebb08e17
+
+$ docker run --rm -dit --name CON2 nprauto11/nprubuntu:v2
+5ea4c2fc8f0839eede20966d47f088806d054ddb798312b3334e87e231e30df5
+
+$ docker ps 
+CONTAINER ID   IMAGE                    COMMAND       CREATED          STATUS          PORTS     NAMES
+5ea4c2fc8f08   nprauto11/nprubuntu:v2   "/bin/bash"   16 seconds ago   Up 15 seconds             CON2
+7434d97ee277   nprauto11/nprubuntu:v1   "bash"        30 seconds ago   Up 29 seconds             CON1
+
+
+$ docker exec -it CON1 ping -c2 www.google.com
+PING www.google.com (108.177.111.147) 56(84) bytes of data.
+64 bytes from jv-in-f147.1e100.net (108.177.111.147): icmp_seq=1 ttl=113 time=1.09 ms
+64 bytes from jv-in-f147.1e100.net (108.177.111.147): icmp_seq=2 ttl=113 time=0.731 ms
+
+--- www.google.com ping statistics ---
+2 packets transmitted, 2 received, 0% packet loss, time 1001ms
+rtt min/avg/max/mdev = 0.731/0.911/1.092/0.180 ms
+
+
+
+==> validate hostname resolution:-
+    ----------------------------
+	
+admin@docker-host ~ ➜  ifconfig
+docker0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 172.17.0.1  netmask 255.255.0.0  broadcast 172.17.255.255
+		
+eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1450
+        inet 192.4.70.3  netmask 255.255.255.0  broadcast 192.4.70.25
+		
+		
+admin@docker-host ~ ➜  docker network ls
+NETWORK ID     NAME      DRIVER    SCOPE
+027de59a4d32   bridge    bridge    local
+e25b3f6c8637   host      host      local
+4e462997469c   none      null      local
+
+
+admin@docker-host ~ ➜  docker run --rm -dit --name CON1 nprauto11/nprubuntu:v1
+3d99df9b75b0cdc3fb3f5acfc68351fa2f8981de8b308b21360a565d00608ce2
+
+admin@docker-host ~ ➜  docker run --rm -dit --name CON2 nprauto11/nprubuntu:v1
+22997cafde833028ea6798c939204c1e53c4668821b336c397956b7f4a470e63
+
+admin@docker-host ~ ➜  docker ps
+CONTAINER ID   IMAGE                    COMMAND   CREATED              STATUS              PORTS     NAMES
+22997cafde83   nprauto11/nprubuntu:v1   "bash"    About a minute ago   Up About a minute             CON2
+3d99df9b75b0   nprauto11/nprubuntu:v1   "bash"    About a minute ago   Up About a minute             CON1
+
+
+admin@docker-host ~ ➜  docker inspect CON1   # --> "IPAddress": "172.17.0.2"
+
+admin@docker-host ~ ➜  docker inspect CON2   # --> "IPAddress": "172.17.0.3"
+
+   
+admin@docker-host ~ ➜  docker exec -it CON1 ping -c2 CON2
+ping: CON2: Name or service not known
+
+admin@docker-host ~ ✖ docker exec -it CON1 ping -c2 172.17.0.3
+PING 172.17.0.3 (172.17.0.3) 56(84) bytes of data.
+64 bytes from 172.17.0.3: icmp_seq=1 ttl=64 time=0.126 ms
+64 bytes from 172.17.0.3: icmp_seq=2 ttl=64 time=0.058 ms
+
+--- 172.17.0.3 ping statistics ---
+2 packets transmitted, 2 received, 0% packet loss, time 1031ms
+rtt min/avg/max/mdev = 0.058/0.092/0.126/0.034 ms
+
+admin@docker-host ~ ➜  docker exec -it CON2 ping -c2 CON1
+ping: CON1: Name or service not known
+
+admin@docker-host ~ ✖ docker exec -it CON2 ping -c2 172.17.0.2
+PING 172.17.0.2 (172.17.0.2) 56(84) bytes of data.
+64 bytes from 172.17.0.2: icmp_seq=1 ttl=64 time=0.060 ms
+64 bytes from 172.17.0.2: icmp_seq=2 ttl=64 time=0.056 ms
+
+--- 172.17.0.2 ping statistics ---
+2 packets transmitted, 2 received, 0% packet loss, time 1011ms
+rtt min/avg/max/mdev = 0.056/0.058/0.060/0.002 ms
+ 
+
+# observed that from CON1 to CON2 containers and vice-versa there is no ping/hostname resolution was not working because of these containers are created under default network 'docker0' (note: in this network hostname resolution will not work)
+# So for this purpose need to create custome/own network and deploy containers in our custom network (no need of creaing all subnets and grouping etc. just high level network creation)
+# by defult driver is bridge (for specific driver provide option -d)
+
+
+admin@docker-host ~ ➜  docker network create frontend
+8e7e754fe388c2e1651cf43581d2b961624c6b67d85e492628c869daa7b34e14
+
+admin@docker-host ~ ➜  docker network ls
+NETWORK ID     NAME       DRIVER    SCOPE
+027de59a4d32   bridge     bridge    local
+8e7e754fe388   frontend   bridge    local
+e25b3f6c8637   host       host      local
+4e462997469c   none       null      local
+
+
+admin@docker-host ~ ➜  docker run --rm -dit --name CON10 --network frontend  nprauto11/nprubuntu:v1
+67a05a38932d899e4d782070eb8717910734f8347beca7531e79b62b59dae924
+
+admin@docker-host ~ ➜  docker run --rm -dit --name CON20 --network frontend  nprauto11/nprubuntu:v1
+3f316a9601df25e642464e39d87a0888a56173f7c3ed9a0145a8406bcc76eda0
+
+
+admin@docker-host ~ ➜  docker inspect CON10   # --> "IPAddress": "172.18.0.2"
+
+admin@docker-host ~ ➜  docker inspect CON20   # --> "IPAddress": "172.18.0.3"
+
+
+admin@docker-host ~ ➜  docker ps
+CONTAINER ID   IMAGE                    COMMAND   CREATED          STATUS          PORTS     NAMES
+3f316a9601df   nprauto11/nprubuntu:v1   "bash"    6 minutes ago    Up 6 minutes              CON20
+67a05a38932d   nprauto11/nprubuntu:v1   "bash"    6 minutes ago    Up 6 minutes              CON10
+22997cafde83   nprauto11/nprubuntu:v1   "bash"    19 minutes ago   Up 19 minutes             CON2
+3d99df9b75b0   nprauto11/nprubuntu:v1   "bash"    20 minutes ago   Up 20 minutes             CON1
+
+
+admin@docker-host ~ ➜  docker exec -it CON10 ping -c2 CON20
+PING CON20 (172.18.0.3) 56(84) bytes of data.
+64 bytes from CON20.frontend (172.18.0.3): icmp_seq=1 ttl=64 time=0.124 ms
+64 bytes from CON20.frontend (172.18.0.3): icmp_seq=2 ttl=64 time=0.068 ms
+
+--- CON20 ping statistics ---
+2 packets transmitted, 2 received, 0% packet loss, time 1002ms
+rtt min/avg/max/mdev = 0.068/0.096/0.124/0.028 ms
+
+admin@docker-host ~ ➜  docker exec -it CON20 ping -c2 CON10
+PING CON10 (172.18.0.2) 56(84) bytes of data.
+64 bytes from CON10.frontend (172.18.0.2): icmp_seq=1 ttl=64 time=0.067 ms
+64 bytes from CON10.frontend (172.18.0.2): icmp_seq=2 ttl=64 time=0.075 ms
+
+--- CON10 ping statistics ---
+2 packets transmitted, 2 received, 0% packet loss, time 1009ms
+rtt min/avg/max/mdev = 0.067/0.071/0.075/0.004 ms
+
+
+admin@docker-host ~ ➜  docker exec -it CON10 ping -c2 CON1
+ping: CON1: No address associated with hostname
+
+admin@docker-host ~ ✖ docker exec -it CON10 ping -c2 CON2
+ping: CON2: No address associated with hostname
+
+
+admin@docker-host ~ ➜  docker exec -it CON20 ping -c2 CON1
+ping: CON1: No address associated with hostname
+
+admin@docker-host ~ ✖ docker exec -it CON20 ping -c2 CON2
+ping: CON2: No address associated with hostname
+
+
+# observed that now able to ping between frontend containers with hostname resolution
+# But from frontend containers to docker0 containers ping not work as because of different network.
+  to communicate, we need add that containers into our network  (i.e secondary network interface)
+  
+
+admin@docker-host ~ ➜  docker network connect frontend CON1
+
+admin@docker-host ~ ➜  docker inspect CON1  # observed attched 2 networks brodge0 & frontend 
+
+admin@docker-host ~ ➜  docker exec -it CON1 ifconfig | grep inet -B1
+eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 172.17.0.2  netmask 255.255.0.0  broadcast 172.17.255.255
+--
+  eth1: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 172.18.0.4  netmask 255.255.0.0  broadcast 172.18.255.255
+--
+  lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 127.0.0.1  netmask 255.0.0.0
+		
+
+admin@docker-host ~ ➜  docker network connect frontend CON2
+
+admin@docker-host ~ ➜  docker exec -it CON2 ifconfig | grep inet -B1
+eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 172.17.0.3  netmask 255.255.0.0  broadcast 172.17.255.255
+--
+  eth1: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 172.18.0.5  netmask 255.255.0.0  broadcast 172.18.255.255
+--
+  lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 127.0.0.1  netmask 255.0.0.0
+		
+		
+admin@docker-host ~ ➜  docker exec -it CON20 ping -c2 CON1
+PING CON1 (172.18.0.4) 56(84) bytes of data.
+64 bytes from CON1.frontend (172.18.0.4): icmp_seq=1 ttl=64 time=0.113 ms
+64 bytes from CON1.frontend (172.18.0.4): icmp_seq=2 ttl=64 time=0.071 ms
+
+--- CON1 ping statistics ---
+2 packets transmitted, 2 received, 0% packet loss, time 1018ms
+rtt min/avg/max/mdev = 0.071/0.092/0.113/0.021 ms
+
+admin@docker-host ~ ➜  docker exec -it CON20 ping -c2 CON2
+PING CON2 (172.18.0.5) 56(84) bytes of data.
+64 bytes from CON2.frontend (172.18.0.5): icmp_seq=1 ttl=64 time=0.128 ms
+64 bytes from CON2.frontend (172.18.0.5): icmp_seq=2 ttl=64 time=0.072 ms
+
+--- CON2 ping statistics ---
+2 packets transmitted, 2 received, 0% packet loss, time 1031ms
+rtt min/avg/max/mdev = 0.072/0.100/0.128/0.028 ms
+
+admin@docker-host ~ ➜  docker exec -it CON10 ping -c2 CON2
+PING CON2 (172.18.0.5) 56(84) bytes of data.
+64 bytes from CON2.frontend (172.18.0.5): icmp_seq=1 ttl=64 time=0.112 ms
+64 bytes from CON2.frontend (172.18.0.5): icmp_seq=2 ttl=64 time=0.088 ms
+
+--- CON2 ping statistics ---
+2 packets transmitted, 2 received, 0% packet loss, time 1027ms
+rtt min/avg/max/mdev = 0.088/0.100/0.112/0.012 ms
+
+admin@docker-host ~ ➜  docker exec -it CON10 ping -c2 CON1
+PING CON1 (172.18.0.4) 56(84) bytes of data.
+64 bytes from CON1.frontend (172.18.0.4): icmp_seq=1 ttl=64 time=0.102 ms
+64 bytes from CON1.frontend (172.18.0.4): icmp_seq=2 ttl=64 time=0.070 ms
+
+--- CON1 ping statistics ---
+2 packets transmitted, 2 received, 0% packet loss, time 1030ms
+rtt min/avg/max/mdev = 0.070/0.086/0.102/0.016 ms
+
+
+admin@docker-host ~ ➜  docker stop $(docker ps -aq)
+3f316a9601df
+67a05a38932d
+22997cafde83
+3d99df9b75b0
+
+admin@docker-host ~ ➜  docker network ls
+NETWORK ID     NAME       DRIVER    SCOPE
+027de59a4d32   bridge     bridge    local
+8e7e754fe388   frontend   bridge    local
+e25b3f6c8637   host       host      local
+4e462997469c   none       null      local
+
+# note: generally use of networking is brige driver
+        for docker swarm uses overlay driver 
+		for some cases host driver also used to use host network (share host ip address) not recomemnded
+		
+--> with host network 
+	
+admin@docker-host ~ ➜  docker run --rm -dit --name hostcon --network host nprauto11/nprubuntu:v2
+a38005d7fe649db01fa301aa8031c2995e9cbb5a2fdda8c23267187732436cf1
+
+
+admin@docker-host ~ ➜  docker ps
+CONTAINER ID   IMAGE                    COMMAND       CREATED          STATUS          PORTS     NAMES
+a38005d7fe64   nprauto11/nprubuntu:v2   "/bin/bash"   12 seconds ago   Up 12 seconds             hostcon
+
+admin@docker-host ~ ➜  docker inspect hostcon    # --> observed networks ip addresses shown as nil 
+
+admin@docker-host ~ ➜  docker exec -it hostcon ifconfig | grep net -B1
+br-8e7e754fe388: flags=4099<UP,BROADCAST,MULTICAST>  mtu 1500
+        inet 172.18.0.1  netmask 255.255.0.0  broadcast 172.18.255.255
+        ether 02:42:51:08:9f:c8  txqueuelen 0  (Ethernet)
+--
+  docker0: flags=4099<UP,BROADCAST,MULTICAST>  mtu 1500
+        inet 172.17.0.1  netmask 255.255.0.0  broadcast 172.17.255.255
+        ether 02:42:53:47:29:1d  txqueuelen 0  (Ethernet)
+--
+  eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1450
+        inet 192.4.70.3  netmask 255.255.255.0  broadcast 192.4.70.255
+        ether 02:42:c0:04:46:03  txqueuelen 0  (Ethernet)
+--
+  eth1: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 172.25.0.62  netmask 255.255.255.0  broadcast 172.25.0.255
+        ether 02:42:ac:19:00:3e  txqueuelen 0  (Ethernet)
+--
+  lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 127.0.0.1  netmask 255.0.0.0
+		
+		
+admin@docker-host ~ ➜  docker exec -it hostcon service nginx status
+ * nginx is not running
+ 
+admin@docker-host ~ ➜ docker exec -it hostcon service nginx start
+ * Starting nginx nginx              [ OK ]  
+ 
+admin@docker-host ~ ➜  docker exec -it hostcon service nginx status
+ * nginx is running
+ 
+
+admin@docker-host ~ ➜  curl http://192.4.70.3
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+<style>
+    body {
+        width: 35em;
+        margin: 0 auto;
+        font-family: Tahoma, Verdana, Arial, sans-serif;
+    }
+</style>
+</head>
+<body>
+<h1>Welcome to nginx!</h1>
+<p>If you see this page, the nginx web server is successfully installed and
+working. Further configuration is required.</p>
+
+<p>For online documentation and support please refer to
+<a href="http://nginx.org/">nginx.org</a>.<br/>
+Commercial support is available at
+<a href="http://nginx.com/">nginx.com</a>.</p>
+
+<p><em>Thank you for using nginx.</em></p>
+</body>
+</html>
+
+
+note: not a recomend way to create a host network (i.e host driver) in realtime 
+
+
+--> with none network  (but generally no proper usecase)
+
+admin@docker-host ~ ➜ docker run --rm -dit --name nonecon1 --network none nprauto11/nprubuntu:v2  
+d3a8c2f74fbe504732e0130e86af573dd1aaa64b4845cdc8038a69dc2ef00ca1
+
+admin@docker-host ~ ➜  docker stop $(docker ps -aq)
+d3a8c2f74fbe
+
+
+--> creating nginx image from nprubuntu
+    ----------
+	
+admin@docker-host ~ ➜  docker run --rm -dit --name nprtest nprauto11/nprubuntu:v2
+
+admin@docker-host ~ ➜ docker exec -it nprtest bash
+root@d14277512a4f:/# service nginx start
+ * Starting nginx nginx                 [ OK ] 
+root@d14277512a4f:/# ctrl pq  
+
+admin@docker-host ~ ➜  docker ps
+CONTAINER ID   IMAGE                    COMMAND       CREATED         STATUS         PORTS     NAMES
+d14277512a4f   nprauto11/nprubuntu:v2   "/bin/bash"   3 minutes ago   Up 3 minutes             nprtest
+
+admin@docker-host ~ ➜  docker commit d14277512a4f nprauto11/nprubuntu_nginx:v1
+sha256:b1b0c448050d5db6ce06e35ef517a6ab3b1f4e77f7f4034fcb5c50ea519eb74a
+
+admin@docker-host ~ ➜  docker login 
+Username: nprauto11
+Password:
+
+admin@docker-host ~ ➜  docker push nprauto11/nprubuntu_nginx:v1
+
+admin@docker-host ~ ➜  docker stop $(docker ps -aq)
+d14277512a4f 
+ 
+ 
+==> 
+usecase:- internet to docker0 network (frontend layer) ---> appnw network (middleware layer) --> dbnw network (backend)
+
+admin@docker-host ~ ➜  docker ps
+CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+
+admin@docker-host ~ ➜  docker network ls
+NETWORK ID     NAME      DRIVER    SCOPE
+5aed99c74ef5   bridge    bridge    local
+755ca48b2b3f   host      host      local
+8a0615662235   none      null      local
+
+admin@docker-host ~ ➜  docker network create frontend
+86d6d0439a57336462939922b5497890e9bcc73a2e7f39ef094ab0137b780be0
+
+admin@docker-host ~ ➜  docker network create appnw
+3ccfd3221425e4513b70ae1fcb1ff5ee6b7ba66e5d2de8f49311638fe3524edf
+
+admin@docker-host ~ ➜  docker network create dbnw
+8aa990d98392368c171a5feb07dc49eefdac3a070e4b244a256107f666bf9fd2
+
+admin@docker-host ~ ➜  docker network ls
+NETWORK ID     NAME       DRIVER    SCOPE
+3ccfd3221425   appnw      bridge    local
+5aed99c74ef5   bridge     bridge    local
+8aa990d98392   dbnw       bridge    local
+86d6d0439a57   frontend   bridge    local
+755ca48b2b3f   host       host      local
+8a0615662235   none       null      local
+
+
+$ docker run --rm -dit --name WEBCON1 --network frontend nprauto11/nprubuntu_nginx:v1
+  4406a66c8e10027f4de4bbeec8504041fa1270c156098f8319319931fcfa3a95
+
+$ docker run --rm -dit --name APPCON1 --network appnw nprauto11/nprubuntu:v1 
+  88d00557fac8c2782215f3fb6815d9020362494ddcf9e53ff12aac7a6c3be89a
+  
+$ docker run --rm -dit --name DBCON1 --network dbnw nprauto11/nprubuntu:v2
+  c6c4aee3f0516c3c23c250e3beea4ca899fe3ee4fac33f2d088b4e84dc03e7f4
+  
+$ docker network connect appnw WEBCON1
+$ docker network connect dbnw APPCON1
+
+admin@docker-host ~ ➜  docker ps
+CONTAINER ID   IMAGE                          COMMAND       CREATED         STATUS         PORTS     NAMES
+c6c4aee3f051   nprauto11/nprubuntu:v2         "/bin/bash"   3 minutes ago   Up 3 minutes             DBCON1
+88d00557fac8   nprauto11/nprubuntu:v1         "bash"        3 minutes ago   Up 3 minutes             APPCON1
+4406a66c8e10   nprauto11/nprubuntu_nginx:v1   "/bin/bash"   3 minutes ago   Up 3 minutes             WEBCON1
+
+
+
+admin@docker-host ~ ➜  docker exec -it WEBCON1 ping -c2 APPCON1 
+PING APPCON1 (172.22.0.2) 56(84) bytes of data.
+64 bytes from APPCON1.appnw (172.22.0.2): icmp_seq=1 ttl=64 time=0.123 ms
+64 bytes from APPCON1.appnw (172.22.0.2): icmp_seq=2 ttl=64 time=0.054 ms
+
+--- APPCON1 ping statistics ---
+2 packets transmitted, 2 received, 0% packet loss, time 1023ms
+rtt min/avg/max/mdev = 0.054/0.088/0.123/0.034 ms
+
+
+admin@docker-host ~ ➜  docker exec -it APPCON1 ping -c2 DBCON1 
+PING DBCON1 (172.23.0.2) 56(84) bytes of data.
+64 bytes from DBCON1.dbnw (172.23.0.2): icmp_seq=1 ttl=64 time=0.123 ms
+64 bytes from DBCON1.dbnw (172.23.0.2): icmp_seq=2 ttl=64 time=0.052 ms
+
+--- DBCON1 ping statistics ---
+2 packets transmitted, 2 received, 0% packet loss, time 1018ms
+rtt min/avg/max/mdev = 0.052/0.087/0.123/0.035 ms
+
+
+admin@docker-host ~ ➜  docker exec -it WEBCON1 ping -c2 DBCON1 
+ping: DBCON1: No address associated with hostname
+
+
+---> 
+reg network removal etc (remove unused ones by prune)
+=================
+
+admin@docker-host ~ ➜  docker ps
+CONTAINER ID   IMAGE                          COMMAND       CREATED          STATUS          PORTS     NAMES
+d22a27e2643b   nprauto11/nprubuntu:v2         "/bin/bash"   4 seconds ago    Up 3 seconds              DBCON1
+f07c88c80715   nprauto11/nprubuntu:v1         "bash"        15 minutes ago   Up 15 minutes             APPCON1
+6b6376c0a5b2   nprauto11/nprubuntu_nginx:v1   "/bin/bash"   15 minutes ago   Up 15 minutes             WEBCON1
+
+admin@docker-host ~ ➜  docker network ls
+NETWORK ID     NAME       DRIVER    SCOPE
+ced8ec31a2df   appnw      bridge    local
+add1a3c96e3c   bridge     bridge    local
+2bbaef2ad3ad   dbnw       bridge    local
+12aff31fdcf5   frontend   bridge    local
+8fefbe0995da   host       host      local
+813c5d3567f5   none       null      local
+
+
+admin@docker-host ~ ➜  docker network rm dbnw 
+Error response from daemon: error while removing network: network dbnw id 2bbaef2ad3ad82948562d1de2d8053ec7a2f193c1218690263007b40c20e588b has active endpoints
+
+admin@docker-host ~ ➜  docker network prune
+WARNING! This will remove all custom networks not used by at least one container.
+Are you sure you want to continue? [y/N] y	 
+	 
+admin@docker-host ~ ➜  docker network ls
+NETWORK ID     NAME       DRIVER    SCOPE
+ced8ec31a2df   appnw      bridge    local
+add1a3c96e3c   bridge     bridge    local
+2bbaef2ad3ad   dbnw       bridge    local
+12aff31fdcf5   frontend   bridge    local
+8fefbe0995da   host       host      local
+813c5d3567f5   none       null      local
+
+admin@docker-host ~ ➜  docker ps
+CONTAINER ID   IMAGE                          COMMAND       CREATED          STATUS          PORTS     NAMES
+d22a27e2643b   nprauto11/nprubuntu:v2         "/bin/bash"   4 minutes ago    Up 4 minutes              DBCON1
+f07c88c80715   nprauto11/nprubuntu:v1         "bash"        19 minutes ago   Up 19 minutes             APPCON1
+6b6376c0a5b2   nprauto11/nprubuntu_nginx:v1   "/bin/bash"   19 minutes ago   Up 19 minutes             WEBCON1
+
+admin@docker-host ~ ➜  docker stop $(docker ps -aq)
+d22a27e2643b
+f07c88c80715
+6b6376c0a5b2
+
+admin@docker-host ~ ➜  docker ps -a  #all containers removed because while creating we used --rm option
+CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+
+admin@docker-host ~ ➜  docker network prune  #now removed 
+WARNING! This will remove all custom networks not used by at least one container.
+Are you sure you want to continue? [y/N] y
+Deleted Networks:
+appnw
+dbnw
+frontend
+
+admin@docker-host ~ ➜  docker network ls
+NETWORK ID     NAME      DRIVER    SCOPE
+add1a3c96e3c   bridge    bridge    local
+8fefbe0995da   host      host      local
+813c5d3567f5   none      null      local
+
+
+
+
+===> 
+
+Containers are state less :- because if any data inside containers will gone when container died/failed
+=======================
+
+scenario
+------
+admin@docker-host ~ ➜ docker run --rm -dit --name CON1 nprauto11/nprubuntu_nginx:v1
+
+admin@docker-host ~ ➜  docker exec -it CON1 bash
+root@45f1c6be80bd:/# pwd
+/
+root@45f1c6be80bd:/# mkdir hello && cd hello
+root@45f1c6be80bd:/hello# I=0
+root@45f1c6be80bd:/hello# while [ $I -lt 11 ]
+> do
+> echo "This is testfile$I" >> file$I
+> I=$(( $I + 1))
+> done
+
+root@45f1c6be80bd:/hello# ll
+total 52
+drwxr-xr-x 2 root root 4096 Apr 12 07:49 ./
+drwxr-xr-x 1 root root 4096 Apr 12 07:47 ../
+-rw-r--r-- 1 root root   18 Apr 12 07:49 file0
+-rw-r--r-- 1 root root   18 Apr 12 07:49 file1
+-rw-r--r-- 1 root root   19 Apr 12 07:49 file10
+-rw-r--r-- 1 root root   18 Apr 12 07:49 file2
+-rw-r--r-- 1 root root   18 Apr 12 07:49 file3
+-rw-r--r-- 1 root root   18 Apr 12 07:49 file4
+-rw-r--r-- 1 root root   18 Apr 12 07:49 file5
+-rw-r--r-- 1 root root   18 Apr 12 07:49 file6
+-rw-r--r-- 1 root root   18 Apr 12 07:49 file7
+-rw-r--r-- 1 root root   18 Apr 12 07:49 file8
+-rw-r--r-- 1 root root   18 Apr 12 07:49 file9
+
+root@45f1c6be80bd:/hello# cat file10
+This is testfile10 
+
+root@45f1c6be80bd:/hello# ctrl pq  #read escape sequence
+
+admin@docker-host ~ ➜   docker stop CON1
+CON1 
+
+#observed that container fails/dies the data inside container unable to get it (data gone)
+
+
+--->
+
+data saving (one of solution: docker volumes and Bind mounts)
+============================= 
+admin@docker-host ~ ➜  docker volume ls
+DRIVER    VOLUME NAME
+
+
+admin@docker-host ~ ➜  docker volume create testvol1
+testvol1
+
+admin@docker-host ~ ➜  docker volume create testvol2
+testvol2
+
+admin@docker-host ~ ➜  docker volume create testvol3
+testvol3
+
+admin@docker-host ~ ➜  docker volume ls
+DRIVER    VOLUME NAME
+local     testvol1
+local     testvol2
+local     testvol3
+
+admin@docker-host ~ ➜ sudo su -
+
+root@docker-host:~# find / -name testvol3
+/var/lib/docker/volumes/testvol3
+
+root@docker-host:~# ls /var/lib/docker/volumes/
+metadata.db  testvol1  testvol2  testvol3
+
+root@docker-host:~# ls /var/lib/docker/volumes/testvol3/_data/
+
+admin@docker-host ~ ➜  docker run --rm -dit --name CON1 --mount source=testvol3,target=/devops nprauto11/nprubuntu_nginx:v1
+245c0a22e4f894012fe6e589632f604a6478c651b845d127a2524bff4052600a
+
+#note: we can use -v as well instead of --mount 
+
+admin@docker-host ~ ➜  docker exec -it CON1 df -h
+Filesystem      Size  Used Avail Use% Mounted on
+overlay         969G  103G  866G  11% /
+tmpfs            48G     0   48G   0% /proc/acpi
+tmpfs            48G     0   48G   0% /proc/scsi
+tmpfs            64M     0   64M   0% /dev
+tmpfs            48G     0   48G   0% /sys/fs/cgroup
+shm              64M     0   64M   0% /dev/shm
+/dev/sda1       969G  103G  866G  11% /devops
+tmpfs            48G     0   48G   0% /sys/firmware
+
+admin@docker-host ~ ➜  docker exec -it CON1 bash
+root@245c0a22e4f8:/# cd /devops/
+root@245c0a22e4f8:/devops# touch file1 file2 file3
+root@245c0a22e4f8:/devops# ls
+file1  file2  file3
+root@245c0a22e4f8:/devops#  ctrl pq  # read escape sequence
+
+admin@docker-host ~ ➜  sudo su -
+root@docker-host:~# ls /var/lib/docker/volumes/testvol3/_data/
+file1  file2  file3
+
+root@docker-host:~# docker stop CON1 
+CON1
+
+root@docker-host:~# docker ps -a
+CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+
+root@docker-host:~# ls /var/lib/docker/volumes/testvol3/_data/
+file1  file2  file3
+
+
+root@docker-host:~# docker volume rm testvol{1..3}
+testvol1
+testvol2
+testvol3
