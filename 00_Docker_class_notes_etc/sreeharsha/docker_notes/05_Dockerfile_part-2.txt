@@ -143,8 +143,12 @@ $ docker build --no-cache -t nprauto11/npr_nginx:v1 .
 
 $ docker run --rm -dit --name NGINX1 -p 9000:80 nprauto11/npr_nginx:v1
 
+# note: above dockerfile have some issues, unable to start nginx as switch to another user (need to work on it)
+
 # test: docker run --rm -it -v /secrets/passwords:/secrets/passwords nprauto11/npr_nginx:v1 cat /secrets/passwords
 
+#ubuntu@ip-172-31-10-120:~$ docker run --rm -it -v /secrets/passwords:/secrets/passwords nprauto11/npr_nginx:v1 cat /secrets/passwords
+cat: /secrets/passwords: Is a directory
 
 
 

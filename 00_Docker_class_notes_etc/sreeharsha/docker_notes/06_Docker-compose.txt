@@ -1,0 +1,66 @@
+(06) Docker-compose: 
+  =====================
+
+Ref: https://marioyepes.com/mongodb-express-using-docker/
+     https://docs.docker.com/compose/compose-file/03-compose-file/
+	 
+	 
+	 
+scenario: to start mong-express & mongo-db:  
+--------
+
+
+# write an docker-compose yml file 
+
+$ vi mongo-express.yaml
+
+# mongo-express.yml
+version: "3.9"
+
+services:
+
+  mongodb:
+    image: mongo
+    container_name: mongodb
+    ports:
+      - 27017:27017
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=rootuser
+      - MONGO_INITDB_ROOT_PASSWORD=rootpass
+    volumes:
+      - mongodb-data
+
+  mongo-express:
+    image: mongo-express
+    container_name: mongo-express
+    ports:
+      - 8081:8081
+    environment:
+      - ME_CONFIG_MONGODB_ADMINUSERNAME=rootuser
+      - ME_CONFIG_MONGODB_ADMINPASSWORD=rootpass
+      - ME_CONFIG_MONGODB_SERVER=mongodb
+
+networks:
+  default:
+    name: mongo-express-network
+
+volumes:
+  mongodb-data:
+    driver: local
+	
+	
+
+
+
+# To start:
+# $ docker-compose -f mongo-express.yml up -d
+
+#    note: -d to run it in detached mode
+
+# to stop:
+# $ docker-compose -f mongo-express.yaml down
+
+
+
+
+
