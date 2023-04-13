@@ -6,4 +6,4 @@
 #    note: -d to run it in detached mode
 
 # to stop:
-# $ docker-compose -f mongo-express.yaml down
+# $ docker-compose -f mongo-express.yml down
